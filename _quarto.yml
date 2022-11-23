@@ -1,0 +1,27 @@
+project:
+  type: book
+
+book:
+  title: "Santa Teresa"
+  author: "Andre Ferrari"
+  date: "10/11/2022"
+  chapters:
+    - index.qmd
+    - intro.qmd
+    - summary.qmd
+    - orcamento.qmd
+    - pessoal.qmd
+    - compras.qmd
+    - seguranca.qmd
+    - references.qmd
+
+bibliography: references.bib
+
+format:
+  html:
+    theme: cosmo
+  pdf:
+    documentclass: scrreprt
+
+editor: visual
+

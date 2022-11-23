@@ -1,0 +1,104 @@
+---
+title: "Compras"
+editor: visual
+---
+
+```{r}
+# https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html
+knitr::opts_chunk$set( echo=FALSE, warning=FALSE, message=FALSE)
+options(encoding = "latin1")
+```
+
+```{r}
+library(purrr)
+library(shiny)
+library(tidyverse)
+library(readxl)
+library(DT)
+library(plotly)
+library(lubridate)
+library(RcppRoll)
+library(scales)
+library(ggrepel)
+library(forcats)
+library(readr)
+```
+
+```{r df_licitacoes}
+
+licitacoes <- read_csv("licitacoes.csv")
+
+
+atual_licitacao <- read_csv("atual_licitacao.csv")
+
+# licitacoes$valor <- str_remove_all(licitacoes$valor,"R")
+# licitacoes$valor <- str_remove_all(licitacoes$valor,"\\$")
+# licitacoes$valor <- str_replace(licitacoes$valor,"--", "0,00")
+# licitacoes$valor <- str_trim (licitacoes$valor)
+# licitacoes$valor <- parse_number(licitacoes$valor, locale = locale(decimal_mark = ","))
+# 
+# licitacoes <- licitacoes %>% mutate(ano = year(data_publicacao))
+
+```
+
+```{r df_atas}
+atas <- read_csv("atas.csv") %>% unique()
+
+```
+
+```{r df_contratos}
+contratos <- read_csv("contratos.csv")
+
+# contratos$valor <- str_remove_all(contratos$valor,"R")
+# contratos$valor <- str_remove_all(contratos$valor,"\\$")
+# contratos$valor <- str_replace(contratos$valor,"--", "0,00")
+# contratos$valor <- str_trim (contratos$valor)
+# contratos$valor <- parse_number(contratos$valor, locale = locale(decimal_mark = ","))
+
+```
+
+Apresentamos abaixo as mais recentes licitações, atas de registro de preço e contratos da Prefeitura Municipal de Santa Teresa-ES.
+
+## Licitações
+
+\
+
+\
+`` There are `r atual_licitacao$x` observations in our data. ``
+
+```{r licitacoes}
+datatable(licitacoes %>% filter(data_publicacao >= as.Date(today()-60) ) %>% group_by(objeto) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
+  currency = "R$",
+  interval = 3,
+  mark = ".",
+  digits = 0,
+  dec.mark = ",",
+  before = TRUE,
+  zero.print = NULL,
+  rows = NULL)%>% 
+     formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
+```
+
+## Atas
+
+```{r tabela_atas}
+datatable(atas %>% select(objeto, fornecedor))%>% 
+     formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
+
+```
+
+## Contratos
+
+```{r}
+datatable(contratos %>% filter(vigencia_data_fim >= as.Date(today()) ) %>% group_by(objeto, fornecedor_nome) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
+  currency = "R$",
+  interval = 3,
+  mark = ".",
+  digits = 0,
+  dec.mark = ",",
+  before = TRUE,
+  zero.print = NULL,
+  rows = NULL)%>% 
+     formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
+
+```
