@@ -6,7 +6,7 @@ editor: visual
 ```{r}
 # https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html
 knitr::opts_chunk$set( echo=FALSE, warning=FALSE, message=FALSE)
-options(encoding = "latin1")
+options(encoding = "Latin1")
 ```
 
 ```{r pacotes}
@@ -30,21 +30,22 @@ library(readr)
 ```{r}
 # https://www.r-bloggers.com/the-notin-operator/
 '%!in%' <- Negate('%in%')
+
+setwd("./dados")
 ```
 
 ```{r pessoal_regime}
+setwd("./dados")
 servidores <- read_csv("servidores.csv", 
-    col_types = cols(admissao_data = col_date(format = "%d/%m/%Y"))) 
-servidores <- servidores %>% select(!...1)
-
-# servidores <- rbind(servidores,servidores_2022_09) 
-
-# servidores <- servidores %>% mutate(competencia_mes =
-#       case_when(competencia_mes %in% c("10","11","12")~ competencia_mes,
-#       TRUE ~ paste0("0",competencia_mes)))
+    col_types = cols(admissao_data = col_date(format = "%d/%m/%Y")), 
+    locale = locale(encoding = "Latin1"))
 
 
- servidores <- servidores %>% mutate(competencia_mes = paste0("0",competencia_mes))
+
+ servidores <- servidores %>% mutate(competencia_mes =if_else(competencia_mes %in% c(10,11,12), as.character(competencia_mes), paste0("0",competencia_mes)))
+
+
+
 
 servidores <- servidores %>% mutate(data =parse_date(  paste0(competencia_ano,"-",competencia_mes,"-01")))
 
@@ -52,7 +53,10 @@ servidores <- servidores %>% mutate(mes_ano =strftime(data  ,'%b-%y') )%>%
   mutate(mes_ano = fct_reorder(mes_ano, data))
 
 
-datatable( servidores %>%  group_by(regime, mes_ano) %>% count(regime) %>% pivot_wider(names_from = mes_ano, values_from = n)) 
+
+datatable( servidores %>%  group_by(regime) %>% count(regime)) 
+
+write_csv(servidores,"servidores_dados.csv")
 ```
 
 ```{r pessoal_setor}
@@ -123,6 +127,10 @@ datatable(servidores %>% filter(data == max(data)) %>% group_by( formacao, instr
 ```
 
 ```{r orcamento_receita}
+#| echo: false
+#| eval: false
+#| include: false
+setwd("./dados")
 orcamento_receita <- read_csv("orcamento_receita.csv")
 
 orcamento_receita <- orcamento_receita %>% separate(rubrica,into = c("rubrica_cod", "rubrica_nome")," - ")
@@ -152,6 +160,10 @@ orcamento_origem <- left_join(orcamento_origem, nomes_origem %>% select(origem_c
 ```
 
 ```{r receitas}
+#| echo: false
+#| eval: false
+#| include: false
+setwd("./dados")
 receitas <- read_csv("receitas.csv")
 
 receitas <- receitas %>% separate(rubrica,into = c("rubrica_cod", "rubrica_nome")," - ")
@@ -176,6 +188,7 @@ receita_origem <- left_join(receita_origem, nomes_origem %>% select(origem_cod, 
 ```
 
 ```{r licitacoes}
+setwd("./dados")
 licitacoes <- read_csv("licitacoes.csv")
 
 licitacoes$valor <- str_remove_all(licitacoes$valor,"R")
@@ -190,13 +203,16 @@ datatable(licitacoes %>% filter(data_abertura >= "2022-10-01" ) %>% group_by(dat
 
 # https://livro.curso-r.com/5-2-readr.html#parseando-valores
 
+write_csv(licitacoes,"dados_licitacoes.csv")
+
 ```
 
 ```{r pagamentos}
-pagamentos <- pagamentos_atual
+setwd("./dados")
+pagamentos <- read_csv("pagamentos.csv")
 
 
-pagamentos <- pagamentos %>% select(-...1,-id, -numero_pagamento, -numero_liquidacao, -numero_empenho, - processo) 
+pagamentos <- pagamentos %>% select(-id, -numero_pagamento, -numero_liquidacao, -numero_empenho, - processo) 
 
 pagamentos <- pagamentos %>%   mutate(mes_ano =strftime(data  ,'%b-%y') )%>%
   mutate(mes_ano = fct_reorder(mes_ano, data))
@@ -291,6 +307,7 @@ grupos_ts <- xts(grupos %>% select(investimento,pessoal,despesas_correntes), gru
 ```
 
 ```{r}
+setwd("./dados")
 contratos <- read_csv("contratos.csv")
 
 
@@ -310,10 +327,16 @@ datatable(contratos %>% filter(vigencia_data_fim > "2022-10-01") %>% group_by(vi
   zero.print = NULL,
   rows = NULL)%>% 
      formatStyle(columns = colnames(.$x$data), fontSize = "8pt")
+
+
+write_csv(contratos,"dados_contratos.csv")
 ```
 
 ```{r}
+setwd("./dados")
 atas <- read_csv("atas.csv") %>% unique()
+
+write_csv(atas,"dados_atas.csv")
 
 datatable(atas %>% group_by(objeto, fornecedor) %>% count())
 ```

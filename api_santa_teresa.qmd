@@ -32,18 +32,6 @@ setwd("./")
 
 
 
-
-
-# # teste último dia
-# endpoint <- endpoint %>% mutate(data_para_url = case_when(
-#   obrigatorio == "ano" ~ "?2022&page_size=1",
-#   obrigatorio == "data_inicial e data_final" & item == "pagamentos"~ paste0("?data_inicio=",strftime( max(as.Date(df.list$pagamentos$data)+days(1)),"%d/%m/%Y"),"&data_fim=",strftime( today(),"%d/%m/%Y"),"&page_size=1"),
-#     obrigatorio == "data_inicial e data_final" & item != "pagamentos"~"?data_inicio=01/01/2022&data_fim=31/12/2022&page_size=1",
-#   obrigatorio == "mês e ano competência"~ "?competencia_ano=2022&competencia_mes=10&page_size=1"
-#   ))
-
-
-
 # teste último dia
 endpoint <- endpoint %>% mutate(data_para_url = case_when(
   obrigatorio == "ano" ~ "?2022&page_size=1",
@@ -151,9 +139,6 @@ all <- map(endpoint_relatorio$item,df_call) %>%
 
 
 
-# 
-# 
-# teste_bind <- rbind((df.list[[str_subset(names(df.list),paste0("atas",".csv"))]]),(all[[str_subset(names(all),"atas")]]))
 
 df_bind <- function(x){
   rbind((df.list[[str_subset(names(df.list),paste0(x))]]),(all[[str_subset(names(all),x)]])) %>% unique()
@@ -175,4 +160,13 @@ gravar_csv <- function(x,y){write_csv(x,y)}
 # for (i in all_bind){( gravar_csv(as.data.frame( all_bind [i])                 ,endpoint_relatorio$csv[i]))} 
 setwd("./dados")
 for (i in (1: NROW(endpoint_relatorio))) {gravar_csv(as.data.frame( all_bind[i]), endpoint_relatorio$csv[i])}
+
+# gravar_csv(all_bind$atas,"dados/atas.csv")
+# gravar_csv(all_bind$pagamentos,"dados/pagamentos.csv")
+# gravar_csv(all_bind$contratos,"dados/contratos.csv")
+# gravar_csv(all_bind$licitacoes,"dados/licitacoes.csv")
+# gravar_csv(all_bind$servidores,"dados/servidores.csv")
+# gravar_csv()
+# gravar_csv()
+
 ```

@@ -26,10 +26,9 @@ library(readr)
 
 ```{r df_licitacoes}
 
-licitacoes <- read_csv("licitacoes.csv")
 
 
-atual_licitacao <- read_csv("atual_licitacao.csv")
+
 
 # licitacoes$valor <- str_remove_all(licitacoes$valor,"R")
 # licitacoes$valor <- str_remove_all(licitacoes$valor,"\\$")
@@ -41,33 +40,19 @@ atual_licitacao <- read_csv("atual_licitacao.csv")
 
 ```
 
-```{r df_atas}
-atas <- read_csv("atas.csv") %>% unique()
 
-```
 
-```{r df_contratos}
-contratos <- read_csv("contratos.csv")
-
-# contratos$valor <- str_remove_all(contratos$valor,"R")
-# contratos$valor <- str_remove_all(contratos$valor,"\\$")
-# contratos$valor <- str_replace(contratos$valor,"--", "0,00")
-# contratos$valor <- str_trim (contratos$valor)
-# contratos$valor <- parse_number(contratos$valor, locale = locale(decimal_mark = ","))
-
-```
-
-Apresentamos abaixo as mais recentes licitações, atas de registro de preço e contratos da Prefeitura Municipal de Santa Teresa-ES.
 
 ## Licitações
 
-\
 
-\
-`` There are `r atual_licitacao$x` observations in our data. ``
+
 
 ```{r licitacoes}
-datatable(licitacoes %>% filter(data_publicacao >= as.Date(today()-60) ) %>% group_by(objeto) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
+
+dados_licitacoes <- read_csv("dados_licitacoes.csv")
+
+datatable(dados_licitacoes %>% filter(data_publicacao >= as.Date(today()-60) ) %>% group_by(objeto, data_abertura) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
   currency = "R$",
   interval = 3,
   mark = ".",
@@ -82,7 +67,8 @@ datatable(licitacoes %>% filter(data_publicacao >= as.Date(today()-60) ) %>% gro
 ## Atas
 
 ```{r tabela_atas}
-datatable(atas %>% select(objeto, fornecedor))%>% 
+dados_atas <- read_csv("dados_atas.csv")
+datatable(dados_atas  %>% select(objeto, fornecedor,vigencia))%>% 
      formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
 
 ```
@@ -90,7 +76,9 @@ datatable(atas %>% select(objeto, fornecedor))%>%
 ## Contratos
 
 ```{r}
-datatable(contratos %>% filter(vigencia_data_fim >= as.Date(today()) ) %>% group_by(objeto, fornecedor_nome) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
+
+dados_contratos <- read_csv("dados_contratos.csv")
+datatable(dados_contratos %>% filter(vigencia_data_fim >= as.Date(today()) ) %>% group_by(objeto, fornecedor_nome, vigencia_data_fim) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
   currency = "R$",
   interval = 3,
   mark = ".",
