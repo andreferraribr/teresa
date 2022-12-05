@@ -25,6 +25,7 @@ library(scales)
 library(ggrepel)
 library(forcats)
 library(readr)
+library(xts)
 ```
 
 ```{r}
@@ -38,11 +39,12 @@ setwd("./dados")
 setwd("./dados")
 servidores <- read_csv("servidores.csv", 
     col_types = cols(admissao_data = col_date(format = "%d/%m/%Y")), 
-    locale = locale(encoding = "Latin1"))
+    locale = locale(encoding = "Latin1")) %>% unique()
+setwd("~/R/teresa")
 
+colnames (servidores ) <- (str_replace(colnames (servidores),paste0( "servidores","."),""))
 
-
- servidores <- servidores %>% mutate(competencia_mes =if_else(competencia_mes %in% c(10,11,12), as.character(competencia_mes), paste0("0",competencia_mes)))
+ servidores <- servidores %>% mutate(competencia_mes =if_else(competencia_mes %in% c(10,11,12), as.character(competencia_mes), paste0("0",competencia_mes))) %>% mutate(competencia_mes = str_sub( competencia_mes, start = -2L))
 
 
 
@@ -54,26 +56,26 @@ servidores <- servidores %>% mutate(mes_ano =strftime(data  ,'%b-%y') )%>%
 
 
 
-datatable( servidores %>%  group_by(regime) %>% count(regime)) 
+# datatable( servidores %>%  group_by(regime) %>% count(regime)) 
 
-write_csv(servidores,"servidores_dados.csv")
+
 ```
 
 ```{r pessoal_setor}
 
 
-datatable( servidores %>%  group_by(setor , mes_ano) %>% count(setor) %>% pivot_wider(names_from = mes_ano, values_from = n))
+# datatable( servidores %>%  group_by(setor , mes_ano) %>% count(setor) %>% pivot_wider(names_from = mes_ano, values_from = n))
 ```
 
 ```{r pessoal_cargo}
-datatable( servidores %>%  group_by(cargo , mes_ano) %>% count(cargo) %>% pivot_wider(names_from = mes_ano, values_from = n))
+# datatable( servidores %>%  group_by(cargo , mes_ano) %>% count(cargo) %>% pivot_wider(names_from = mes_ano, values_from = n))
 
 ```
 
 ```{r pessoal_movimentacao}
-datatable(servidores %>% filter(admissao_data >= max(data)) %>%  count())
-
-datatable(servidores %>% filter(demissao_data >= max(data)) %>%  count())
+# datatable(servidores %>% filter(admissao_data >= max(data)) %>%  count())
+# 
+# datatable(servidores %>% filter(demissao_data >= max(data)) %>%  count())
 
 
 servidores <- servidores %>% mutate(formacao = case_when( 
@@ -88,42 +90,122 @@ servidores <- servidores %>% mutate(formacao = case_when(
 ))
 
 
+# 
+# datatable(servidores %>% filter(data == max(data)) %>% summarise(remuneracao_max = max(total_rendimentos), remuneracao_min = min(total_rendimentos), remuneracao_media = mean(total_rendimentos))  )
 
-datatable(servidores %>% filter(data == max(data)) %>% summarise(remuneracao_max = max(total_rendimentos), remuneracao_min = min(total_rendimentos), remuneracao_media = mean(total_rendimentos))  )
+# p <- ggplot(servidores %>% filter(data == max(data)), aes(total_rendimentos, fill = formacao) )+geom_histogram()+facet_wrap(~regime)
+# 
+# ggplotly(p)
+# 
+# 
+# 
+# p <- ggplot(servidores %>% filter(data == max(data)), aes(total_rendimentos, fill = setor_sigla) )+geom_histogram()
+# 
+# ggplotly(p)
+# 
+# 
+# p <- ggplot(servidores %>% filter(data == max(data)), aes(total_rendimentos, fill = regime) )+geom_histogram()
+# 
+# ggplotly(p)
+# 
+# 
+# 
+# 
+# datatable(servidores %>% filter(data == max(data)) %>% group_by(regime) %>% count() )
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# p <- ggplot(servidores %>% filter(data == max(data), regime %!in% c ("Pensionista", "Inativo")), aes(formacao) )+geom_bar()+ coord_flip()
+# 
+# ggplotly(p)
+# 
+# 
+# datatable(servidores %>% filter(data == max(data)) %>% group_by( formacao, instrucao) %>% count()) 
 
-p <- ggplot(servidores %>% filter(data == max(data)), aes(total_rendimentos, fill = formacao) )+geom_histogram()+facet_wrap(~regime)
 
-ggplotly(p)
+servidores <- servidores %>% separate(jornada, into = c("jornada_horas","Jornada_minutos"),":")
 
+servidores$jornada_horas <- as.integer(servidores$jornada_horas)
 
+servidores <- servidores %>% mutate(remuneracao_por_hora = round( total_rendimentos/jornada_horas,1))
 
-p <- ggplot(servidores %>% filter(data == max(data)), aes(total_rendimentos, fill = setor_sigla) )+geom_histogram()
-
-ggplotly(p)
-
-
-p <- ggplot(servidores %>% filter(data == max(data)), aes(total_rendimentos, fill = regime) )+geom_histogram()
-
-ggplotly(p)
+mes_vigente <- levels(servidores$mes_ano)[as.numeric(max(servidores$competencia_mes))]
 
 
 
+servidores <- servidores %>% mutate(setor_clean = case_when(
+  str_detect(setor,"ADMI")~ "Administração e Recursos Humanos",
+  str_detect(setor,"AGRI")~ "Agricultura e Desenvolvimento Econômico",
+  str_detect(setor,"SOCIAL")~ "Assistência Social",
+  str_detect(setor,"EDUC")~ "Educação",
+  str_detect(setor,"ESPOR")~ "Esporte e Lazer",
+  str_detect(setor,"FAZENDA")~ "Fazenda",
+  str_detect(setor,"MEIO")~ "Meio Ambiente",
+  str_detect(setor,"OBRAS")~ "Obras e Infraestrutura",
+  str_detect(setor,"PLANEJ")~ "Planejamento e Assuntos Estratégicos",
+  str_detect(setor,"SAUDE")~ "Saúde",
+  str_detect(setor,"TRANSP")~ "Transportes",
+  str_detect(setor,"CULT")~ "Turismo e Cultura",
+  str_detect(setor,"TURIS")~ "Turismo e Cultura",
+  str_detect(setor,"CONTRO")~ "Controladoria Interna",
+  str_detect(setor,"PROC")~ "Procuradoria Jurídica",
+  str_detect(setor,"GABI")~ "Gabinete do Prefeito",
+  str_detect(setor,"POLI")~ "Gabinete do Prefeito",
+  TRUE ~ "Demais"
+))
 
-datatable(servidores %>% filter(data == max(data)) %>% group_by(regime) %>% count() )
+servidores <- servidores %>% mutate(cargo_clean = case_when( 
+  cargo == "ASSIS ADMINISTRATIVO INATIVO" ~  "Assitente",
+  cargo == "CIRURGIAO DENTISTA" ~  "Dentista",
+  cargo == "COORD ADMINISTRATIVO E FINANCEIRO INATIVO P" ~  "Coordenador",
+  cargo == "COORDENACAO DA ATENCAO ESPECIALIZADA" ~  "Coordenador",
+  cargo == "DEPARTAMENTO ADMINISTRATIVO" ~  "Assitente",
+  cargo == "ENFERMEIRO(A) ESF" ~  "Enfermeiro",
+  cargo == "PROFISSIONAL ED FISICA NASF" ~  "Educador Físico",
+  cargo == "PSICOLOGO(A) DT" ~  "Psicólogo",
+  cargo == "SEC MUNICIPAL DE EDUCACAO" ~  "Secretário Municipal",
+  cargo == "SECRETARIO(A) MUNICIPAL DE SAUDE" ~  "Secretário Municipal",
+  cargo == "TRABALHADOR BRACAL" ~  "Trabalhador Braçal",
+  cargo == "VICE PREFEITO" ~  "Vice Prefeito",
+  TRUE ~ str_to_title( word(cargo,1))))
+
+
+servidores <- servidores %>% mutate(cargo_clean = case_when( 
+  startsWith(cargo_clean, "Psic") ~  "Psicólogo",
+  cargo_clean == "Subsecretario" ~  "Subsecretário Municipal",
+  cargo_clean == "Medico" ~  "Médico",
+  cargo_clean == "Enfermeiro(A)" ~  "Enfermeiro",
+  cargo_clean == "Estagiario" ~  "Estagiário",
+  cargo_clean == "Secretario" ~  "Secretário Municipal",
+  cargo_clean == "Enfermeiro(A)" ~  "Enfermeiro",
+  cargo_clean == "Mecanico" ~  "Mecânico",
+  cargo_clean == "Coord" ~  "Coordenador",
+  cargo_clean == "Tecnico" ~  "Técnico",
+  cargo_clean == "Sec" ~  "Secretário Municipal",
+  cargo_clean == "Assis" ~  "Assistente",
+  cargo_clean == "Escriturario" ~  "Escriturário",
+  cargo_clean == "Farmaceutico" ~  "Farmacêutico",
+  cargo_clean == "Cirurgiao" ~  "Cirurgião",
+  
+  TRUE ~ cargo_clean))
 
 
 
+servidores <- servidores %>% mutate(regime = case_when(
+  regime == "Estagiario" ~ "Estagiário",
+  regime == "ESTAGIARIO" ~ "Estagiário",
+  regime == "Estatutario" ~ "Estatutário",
+  regime == "ELEITO   CONSELHO TUTELAR" ~ "Conselho Tutelar",
+  TRUE ~ regime
+  
+))
 
-
-
-
-
-p <- ggplot(servidores %>% filter(data == max(data), regime %!in% c ("Pensionista", "Inativo")), aes(formacao) )+geom_bar()+ coord_flip()
-
-ggplotly(p)
-
-
-datatable(servidores %>% filter(data == max(data)) %>% group_by( formacao, instrucao) %>% count()) 
+write_csv(servidores %>%select(id, nome, regime, setor_clean, cargo_clean,formacao, competencia_ano, competencia_mes,data, mes_ano, jornada_horas, Jornada_minutos, total_rendimentos, horaextra,  remuneracao_por_hora, admissao_data, demissao_data) %>% unique(),"dados_servidores.csv")
 ```
 
 ```{r orcamento_receita}
@@ -132,6 +214,7 @@ datatable(servidores %>% filter(data == max(data)) %>% group_by( formacao, instr
 #| include: false
 setwd("./dados")
 orcamento_receita <- read_csv("orcamento_receita.csv")
+setwd("~/R/teresa")
 
 orcamento_receita <- orcamento_receita %>% separate(rubrica,into = c("rubrica_cod", "rubrica_nome")," - ")
 
@@ -190,6 +273,8 @@ receita_origem <- left_join(receita_origem, nomes_origem %>% select(origem_cod, 
 ```{r licitacoes}
 setwd("./dados")
 licitacoes <- read_csv("licitacoes.csv")
+colnames (licitacoes ) <- (str_replace(colnames (licitacoes),paste0( "licitacoes","."),""))
+setwd("~/R/teresa")
 
 licitacoes$valor <- str_remove_all(licitacoes$valor,"R")
 licitacoes$valor <- str_remove_all(licitacoes$valor,"\\$")
@@ -210,9 +295,10 @@ write_csv(licitacoes,"dados_licitacoes.csv")
 ```{r pagamentos}
 setwd("./dados")
 pagamentos <- read_csv("pagamentos.csv")
+setwd("~/R/teresa")
 
-
-pagamentos <- pagamentos %>% select(-id, -numero_pagamento, -numero_liquidacao, -numero_empenho, - processo) 
+colnames (pagamentos ) <- (str_replace(colnames (pagamentos),paste0( "pagamentos","."),""))
+pagamentos <- pagamentos %>% select(-id, -numero_pagamento, -numero_liquidacao,  processo) 
 
 pagamentos <- pagamentos %>%   mutate(mes_ano =strftime(data  ,'%b-%y') )%>%
   mutate(mes_ano = fct_reorder(mes_ano, data))
@@ -237,7 +323,7 @@ pagamentos <- pagamentos %>% separate(elemento, into = c("elemento_cod", "elemen
 
 
 
-
+pagamentos <- pagamentos %>% separate(numero_empenho, into = c("empenho", "ano_empenho" ), sep = "/")
 
 # datatable(pagamentos %>% filter(grupo_cod != c("31"), elemento != "33904700000 - OBRIGAÇÕES TRIBUTARIAS E CONTRIBUTIVAS", favorecido_nome %!in% c("MINISTÉRIO DA FAZENDA - SECRETARIA DA RECEITA FEDERAL","INSTITUTO NACIONAL DO SEGURO SOCIAL", "MINISTÉRIO DA FAZENDA - SECRETARIA DA RECEITA FEDERAL","PREFEITURA MUNICIPAL DE SANTA TERESA","CAIXA ECONOMICA FEDERAL","SECRETARIA DE ESTADO DA AGRICULTURA, ABASTECIMENTO E PESCA - SEAG","PAGAMENTO DE SERVIDORES FMS SANTA TERESA" ,"PAGAMENTO DE SERVIDORES FMS SANTA TERESA","TESOURO NACIONAL")) %>% group_by(favorecido_nome) %>% summarise(valor = sum(valor, na.rm = TRUE)))%>% formatCurrency("valor",
 #   currency = "",
@@ -282,7 +368,7 @@ pagamentos <- pagamentos %>% separate(elemento, into = c("elemento_cod", "elemen
 
 
 
- library(openxlsx)
+
 # write.xlsx  (pagamento_clean ,"pagamentos_clean.xlsx")
 # 
 # write_csv(pagamento_clean,"pagamentos_clean.csv")
@@ -304,13 +390,18 @@ grupos <- grupos %>%  mutate(despesas_correntes = round(roll_sum(despesas_corren
 
 grupos_ts <- xts(grupos %>% select(investimento,pessoal,despesas_correntes), grupos$data_ts)
 
+
+dados_pagamentos <- pagamentos %>% group_by(entidade_nome,mes_ano,data_ts,ano,funcao_cod,funcao_nome,subfuncao_cod, subfuncao_nome,grupo_cod, grupo_nome,elemento_cod,elemento_nome,acao_cod,acao_nome,favorecido_nome, favorecido_documento, empenho, ano_empenho) %>% summarise(valor = sum(valor))
+
+write_csv(dados_pagamentos,"dados_pagamentos.csv")
+
 ```
 
 ```{r}
 setwd("./dados")
 contratos <- read_csv("contratos.csv")
-
-
+setwd("~/R/teresa")
+colnames (contratos ) <- (str_replace(colnames (contratos),paste0( "contratos","."),""))
 contratos$valor <- str_remove_all(contratos$valor,"R")
 contratos$valor <- str_remove_all(contratos$valor,"\\$")
 contratos$valor <- str_replace(contratos$valor,"--", "0,00")
@@ -335,6 +426,8 @@ write_csv(contratos,"dados_contratos.csv")
 ```{r}
 setwd("./dados")
 atas <- read_csv("atas.csv") %>% unique()
+setwd("~/R/teresa")
+colnames (atas ) <- (str_replace(colnames (atas),paste0( "atas","."),""))
 
 write_csv(atas,"dados_atas.csv")
 

@@ -7,6 +7,8 @@ editor: visual
 # https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html
 knitr::opts_chunk$set( echo=FALSE, warning=FALSE, message=FALSE)
 options(encoding = "latin1")
+
+# https://kcuilla.github.io/reactablefmtr/articles/nba_player_ratings.html
 ```
 
 ```{r}
@@ -22,6 +24,9 @@ library(scales)
 library(ggrepel)
 library(forcats)
 library(readr)
+library(reactable)
+library(htmltools)
+library(reactablefmtr)
 ```
 
 ```{r df_licitacoes}
@@ -40,13 +45,7 @@ library(readr)
 
 ```
 
-
-
-
 ## Licitações
-
-
-
 
 ```{r licitacoes}
 
@@ -89,4 +88,106 @@ datatable(dados_contratos %>% filter(vigencia_data_fim >= as.Date(today()) ) %>%
   rows = NULL)%>% 
      formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
 
+```
+
+```{r reactable}
+
+
+# https://glin.github.io/reactable/reference/colFormat.html
+
+reactable(
+  dados_contratos %>% filter(vigencia_data_fim >= as.Date(today()) ) %>% group_by(objeto, fornecedor_nome, vigencia_data_fim) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor))
+, columns = list(
+  vigencia_data_fim = colDef(format = colFormat(date = TRUE, locales = "pt-BR"), filterable = TRUE),
+  valor = colDef(format = colFormat( separators = TRUE, locales = "pt-BR"))))%>%
+  add_title("This is a title") %>% 
+  add_subtitle("This is a subtitle") %>% 
+  add_source("This is a source")
+
+```
+
+```{r}
+library(reactable)
+reactable(
+  dados_atas ,  theme = espn(),
+  groupBy = "objeto",
+  columns = list(
+    fornecedor = colDef(
+      aggregate = "count",
+      format = list(
+        aggregated = colFormat(suffix = " fornecedor")
+      )
+    )
+  )
+)
+
+ # %>% google_font("Roboto Mono", font_weight = 200, font_style = "italic")
+```
+
+```{r}
+
+dados_servidores <- read_csv("dados_servidores.csv", 
+    col_types = cols(admissao_data = col_date(format = "%d/%m/%Y"))) %>%
+  mutate(mes_ano = fct_reorder(mes_ano, data))
+
+react_pessoal <- dados_servidores %>% group_by(setor_clean, mes_ano) %>% count() %>% pivot_wider(names_from = "mes_ano", values_from = n) 
+
+react_pessoal <- react_pessoal %>% replace(is.na(.), 0)
+
+
+react_pessoal_mes <- dados_servidores %>% group_by(setor_clean, mes_ano) %>% count()
+
+
+
+```
+
+```{r}
+library(reactablefmtr)
+library(tidyverse)
+library(palmerpenguins)
+library(dataui)
+
+df <- penguins %>%
+  filter(!is.na(sex)) %>%
+  group_by(species, sex) %>%
+  summarize(flipper_length = list(flipper_length_mm))
+
+
+df2 <- react_pessoal_mes %>%
+  
+  group_by(setor_clean) %>%
+  summarize(quantidade = list(n))
+
+
+reactable(
+  df2, pagination = FALSE,
+  columns = list(
+ 
+    quantidade = colDef(
+      cell = react_sparkline(
+        df2,
+        tooltip_color = 'red'
+      )
+    )
+  )
+)
+
+
+reactable(
+  df2, pagination = FALSE,
+  columns = list(
+    setor_clean = colDef(maxWidth = 300),
+    # cols = colDef(show = FALSE),
+    quantidade = colDef(
+      cell = react_sparkbar(
+        df2,
+        height = 30,
+        # fill_color_ref = "cols",
+        bandline = "innerquartiles",
+        statline = "mean",
+        tooltip_type = 2
+      )
+    )
+  )
+)
 ```

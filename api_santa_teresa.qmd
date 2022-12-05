@@ -23,13 +23,21 @@ endpoint <- read_excel("endpoint.xlsx")
 
 endpoint <- endpoint %>% mutate(csv = paste0(item,".csv"))
 
+endpoint <- endpoint %>% mutate(salvar_csv = paste0("dados/",item,".csv"))
+
 setwd("./dados")
 file.list <-  list.files( pattern='*.csv')
 df.list <- lapply(file.list, read_csv) %>% 
   setNames(str_remove( file.list,".csv")) 
 setwd("./")
 
-
+colnames (df.list[["pagamentos"]] ) <- (str_replace(colnames (df.list[["pagamentos"]]),paste0( "pagamentos","."),""))
+colnames (df.list[["atas"]] ) <- (str_replace(colnames (df.list[["atas"]]),paste0( "atas","."),""))
+colnames (df.list[["licitacoes"]] ) <- (str_replace(colnames (df.list[["licitacoes"]]),paste0( "licitacoes","."),""))
+colnames (df.list[["documentos"]] ) <- (str_replace(colnames (df.list[["documentos"]]),paste0( "documentos","."),""))
+colnames (df.list[["diarias_passagens"]] ) <- (str_replace(colnames (df.list[["diarias_passagens"]]),paste0( "diarias_passagens","."),""))
+colnames (df.list[["contratos"]] ) <- (str_replace(colnames (df.list[["contratos"]]),paste0( "contratos","."),""))
+colnames (df.list[["servidores"]] ) <- (str_replace(colnames (df.list[["servidores"]]),paste0( "servidores","."),""))
 
 
 # teste último dia
@@ -153,13 +161,19 @@ all_bind <- map(endpoint_relatorio$item,df_bind)
 
 names(all_bind) <- endpoint_relatorio$item
 
-
+# colnames (all_bind[["pagamentos"]] ) <- (str_replace(colnames (all_bind[["pagamentos"]]),paste0( "pagamentos","."),""))
+colnames (all_bind[["atas"]] ) <- (str_replace(colnames (all_bind[["atas"]]),paste0( "atas","."),""))
+colnames (all_bind[["licitacoes"]] ) <- (str_replace(colnames (all_bind[["licitacoes"]]),paste0( "licitacoes","."),""))
+colnames (all_bind[["documentos"]] ) <- (str_replace(colnames (all_bind[["documentos"]]),paste0( "documentos","."),""))
+# colnames (all_bind[["diarias_passagens"]] ) <- (str_replace(colnames (all_bind[["diarias_passagens"]]),paste0( "diarias_passagens","."),""))
+colnames (all_bind[["contratos"]] ) <- (str_replace(colnames (all_bind[["contratos"]]),paste0( "contratos","."),""))
+colnames (all_bind[["servidores"]] ) <- (str_replace(colnames (all_bind[["servidores"]]),paste0( "servidores","."),""))
 
 gravar_csv <- function(x,y){write_csv(x,y)}
 
 # for (i in all_bind){( gravar_csv(as.data.frame( all_bind [i])                 ,endpoint_relatorio$csv[i]))} 
-setwd("./dados")
-for (i in (1: NROW(endpoint_relatorio))) {gravar_csv(as.data.frame( all_bind[i]), endpoint_relatorio$csv[i])}
+setwd("~/R/teresa")
+for (i in (1: NROW(endpoint_relatorio))) {gravar_csv(as.data.frame( all_bind[i]), endpoint_relatorio$salvar_csv[i])}
 
 # gravar_csv(all_bind$atas,"dados/atas.csv")
 # gravar_csv(all_bind$pagamentos,"dados/pagamentos.csv")

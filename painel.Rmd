@@ -1,10 +1,11 @@
 ---
 title: "Santa Teresa"
+runtime: shiny
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
-runtime: shiny
+
 ---
 
 ```{r}
@@ -28,82 +29,29 @@ library(forcats)
 library(readr)
 library(janitor)
 library(shinyWidgets)
+library(xts)
 ```
 
 ```{r df_servidores}
 
-servidores <- read_csv("servidores.csv", 
-    col_types = cols(admissao_data = col_date(format = "%d/%m/%Y"))) 
-servidores <- servidores %>% select(!...1)
+dados_servidores <- read_csv("dados_servidores.csv", 
+    col_types = cols(admissao_data = col_date(format = "%d/%m/%Y"))) %>%
+  mutate(mes_ano = fct_reorder(mes_ano, data))
+# servidores <- servidores %>% select(!...1)
 
 
  # servidores <- servidores %>% mutate(competencia_mes = if_else(competencia_mes < 10, paste0("0",as.character( competencia_mes)), as.character( competencia_mes)))
 
-servidores <- servidores %>% mutate(data =parse_date(  paste0(competencia_ano,"-",competencia_mes,"-01")))
+
+mes_vigente <- paste0(max(dados_servidores$competencia_mes),"-", max(dados_servidores$competencia_ano))
 
 
-
-servidores <- servidores %>% mutate(mes_ano =strftime(data  ,'%b-%y') )%>%
-  mutate(mes_ano = fct_reorder(mes_ano, data))
-
-servidores <- servidores %>% mutate(regime = case_when(
-  regime == "ESTAGIARIO" ~ "Estagiário",
-  startsWith(regime,"Estag") ~ "Estagiário",
-  regime == "Estagi\xe1rio" ~ "Estagiário",
-  regime == "ELEITO   CONSELHO TUTELAR" ~ "Eleito",
-  TRUE ~ regime))
-
-
-servidores <- servidores %>% mutate(formacao = case_when( 
- instrucao %in% c("POS GRADUADO","POS GRADUACAO") ~ "pós graduação",
-  instrucao %in% c("CURSO TECNICO","SEGUNDO GRAU (COLEGIAL) COMPLETO.","SUPERIOR INCOMPLETO.") ~ "ensino medio",
-  instrucao == "SUPERIOR COMPLETO" ~ "ensino superior",
- 
-  
-  TRUE ~ "ensino fundamental"
-  
-  
-))
-
-servidores <- servidores %>% separate(jornada, into = c("jornada_horas","Jornada_minutos"),":")
-
-servidores$jornada_horas <- as.integer(servidores$jornada_horas)
-
-servidores <- servidores %>% mutate(remuneracao_por_hora = round( total_rendimentos/jornada_horas,1))
-
-mes_vigente <- levels(servidores$mes_ano)[as.numeric(max(servidores$competencia_mes))]
 
 ```
 
-```{r df_pagamentos}
-# pagamentos <- readxl::read_excel("pagamentos_clean.xlsx")
-
-
-pagamentos <- read_csv("pagamentos_clean.csv")
-
-# pagamentos <- rbind(pagamentos, pag_atual)
-
-
-
-grupos <- do.call(cbind, list(pagamentos %>% filter(grupo_cod == "44") %>% group_by(data_ts) %>% summarise(investimento = sum(valor)/1000000),pagamentos %>% filter(grupo_cod == "33") %>% group_by(data_ts) %>% summarise(despesas_correntes = sum(valor)/1000000) %>% select(despesas_correntes), pagamentos %>% filter(grupo_cod == "31") %>% group_by(data_ts) %>% summarise(pessoal = sum(valor)/1000000)%>% select(pessoal)))
-
-
-
-library(xts)
-
-# grupos <- grupos %>% select(1,2,4,6)
-
-grupos <- grupos %>%  mutate(despesas_correntes = round(roll_sum(despesas_correntes,12, fill=NA,align="right"),1),
-                             pessoal = round(roll_sum(pessoal,12, fill=NA, align="right"),1),
-                             investimento = round(roll_sum(investimento,12, fill=NA, align="right"),1)
-                             )
-
-
-grupos_ts <- xts(grupos %>% select(investimento,pessoal,despesas_correntes), grupos$data_ts)
-```
 
 ```{r df_receitas}
-receitas_clean <- read_csv("receitas_clean.csv")
+# receitas_clean <- read_csv("receitas_clean.csv")
 
 
 
@@ -112,30 +60,21 @@ receitas_clean <- read_csv("receitas_clean.csv")
 
 ```{r df_licitacoes}
 
-licitacoes <- read_csv("licitacoes.csv")
-
-licitacoes$valor <- str_remove_all(licitacoes$valor,"R")
-licitacoes$valor <- str_remove_all(licitacoes$valor,"\\$")
-licitacoes$valor <- str_replace(licitacoes$valor,"--", "0,00")
-licitacoes$valor <- str_trim (licitacoes$valor)
-licitacoes$valor <- parse_number(licitacoes$valor, locale = locale(decimal_mark = ","))
-
-licitacoes <- licitacoes %>% mutate(ano = year(data_publicacao))
+dados_licitacoes <- read_csv("dados_licitacoes.csv")
 
 ```
 
 ```{r df_atas}
-atas <- read_csv("atas.csv") %>% unique()
+dados_atas <- read_csv("dados_atas.csv") %>% unique()
+```
+
+```{r df_pagamentos}
+dados_pagamentos <- read_csv("dados_pagamentos.csv")
 ```
 
 ```{r df_contratos}
-contratos <- read_csv("contratos.csv")
+dados_contratos <- read_csv("dados_contratos.csv")
 
-contratos$valor <- str_remove_all(contratos$valor,"R")
-contratos$valor <- str_remove_all(contratos$valor,"\\$")
-contratos$valor <- str_replace(contratos$valor,"--", "0,00")
-contratos$valor <- str_trim (contratos$valor)
-contratos$valor <- parse_number(contratos$valor, locale = locale(decimal_mark = ","))
 
 ```
 
@@ -146,10 +85,6 @@ contratos$valor <- parse_number(contratos$valor, locale = locale(decimal_mark = 
 ### Servidores
 
 ```{r}
-# https://www.r-bloggers.com/the-notin-operator/
-'%!in%' <- Negate('%in%')
-
-
 reais = function(x){prettyNum(round(x,0), big.mark = ".", decimal.mark = ",")}
 
 # servidores <- rbind(servidores,servidores_2022_09) 
@@ -161,7 +96,7 @@ reais = function(x){prettyNum(round(x,0), big.mark = ".", decimal.mark = ",")}
 
 
 
-datatable( servidores %>%  group_by(regime, mes_ano) %>% count(regime) %>% pivot_wider(names_from = mes_ano, values_from = n)%>%
+datatable( dados_servidores %>%  group_by(regime, mes_ano) %>% count(regime) %>% arrange(desc(mes_ano),desc(n)) %>% pivot_wider(names_from = mes_ano, values_from = n)%>%
   adorn_totals(where = c("row"))  )%>% 
      formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
 
@@ -207,7 +142,7 @@ tabela_reais = function (df,coluna = NULL) {
 
 
 
-datatable(pagamentos %>% filter(funcao_nome !="") %>% group_by(ano, funcao_nome) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
+datatable(dados_pagamentos %>% filter(funcao_nome !="") %>% group_by(ano, funcao_nome) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
   adorn_totals(where = c("row", "col")) %>%arrange(desc(Total)))%>% formatCurrency(c(as.character( c(2007:2022)),"Total"),
   currency = "",
   interval = 3,
@@ -227,6 +162,14 @@ datatable(pagamentos %>% filter(funcao_nome !="") %>% group_by(ano, funcao_nome)
 
 ```{r}
 library(dygraphs)
+
+grupos <- full_join(dados_pagamentos %>% filter(grupo_cod == "44") %>% group_by(data_ts) %>% summarise(investimento = sum(valor)/1000000),dados_pagamentos %>% filter(grupo_cod != "44") %>% group_by(data_ts) %>% summarise(demais = sum(valor)/1000000), by = "data_ts")
+
+grupos <- grupos %>%  mutate(investimento_acumulado = round(roll_sum(investimento,12, fill=NA, align="right"),1),demais_acumulado = round(roll_sum(demais,12, fill=NA, align="right"),1))
+
+
+grupos_ts <- xts(grupos %>% select(investimento_acumulado,demais_acumulado), grupos$data_ts)
+
 dygraph(grupos_ts, main = "Despesas (acumulado 12 meses)") %>%
   dyOptions(stepPlot = TRUE)%>% 
   dyRangeSelector()%>%
@@ -239,10 +182,10 @@ dygraph(grupos_ts, main = "Despesas (acumulado 12 meses)") %>%
 
 ```{r}
 
-subfuncao <- pagamentos %>% filter(grupo_cod == "33", ano >2017) %>% group_by(ano, subfuncao_nome) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
+subfuncao <- dados_pagamentos %>% filter(grupo_cod == "33", ano >2017) %>% group_by(ano, subfuncao_nome) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
   adorn_totals(where = c("row", "col")) %>% arrange(desc(Total))
 
-datatable(pagamentos %>% filter(grupo_cod == "33", ano >2017) %>% group_by(ano, subfuncao_nome) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
+datatable(dados_pagamentos %>% filter(grupo_cod == "33", ano >2017) %>% group_by(ano, subfuncao_nome) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
   adorn_totals(where = c("row", "col")) %>%arrange(desc(Total)))%>% formatCurrency(c(as.character( c(2018:2022)),"Total"),
   currency = "",
   interval = 3,
@@ -264,7 +207,7 @@ datatable(pagamentos %>% filter(grupo_cod == "33", ano >2017) %>% group_by(ano, 
 
 ```{r}
 
-total_rendimentos <- sum(servidores %>% filter(data == max(data)) %>% select(total_rendimentos))
+total_rendimentos <- sum(dados_servidores %>% filter(data == max(data)) %>% select(total_rendimentos))
 
 renderValueBox( valueBox(reais(total_rendimentos), caption = paste0("Total Rendimentos em ", mes_vigente)))
 
@@ -275,7 +218,7 @@ renderValueBox( valueBox(reais(total_rendimentos), caption = paste0("Total Rendi
 
 ```{r}
 
-f_trabalho <- nrow(servidores %>% filter(data == max(data)))
+f_trabalho <- nrow(dados_servidores %>% filter(data == max(data)))
 
 renderValueBox( valueBox(reais(f_trabalho), caption = paste0("Força de Trabalho em ", mes_vigente)))
 
@@ -286,7 +229,7 @@ renderValueBox( valueBox(reais(f_trabalho), caption = paste0("Força de Trabalho
 
 ```{r}
 
-max_remuneracao <- max(servidores %>% filter(data == max(data)) %>% select(total_rendimentos))
+max_remuneracao <- max(dados_servidores %>% filter(data == max(data)) %>% select(total_rendimentos))
 
 renderValueBox( valueBox(reais(max_remuneracao), caption = paste0("Maior Rendimento em ",mes_vigente)))
 
@@ -308,7 +251,7 @@ renderValueBox( valueBox(reais(total_rendimentos/f_trabalho), caption = paste0("
 
 ```{r}
 
-total_horas <- sum(servidores %>% filter(data == max(data)) %>% select(jornada_horas))
+total_horas <- sum(dados_servidores %>% filter(data == max(data)) %>% select(jornada_horas))
 
 renderValueBox( valueBox(reais(total_rendimentos/total_horas), caption = paste0("Valor médio da hora trabalhada em ", mes_vigente)))
 
@@ -317,11 +260,19 @@ renderValueBox( valueBox(reais(total_rendimentos/total_horas), caption = paste0(
 
 ## Column {.tabset}
 
+
 ### remuneração por regime
 
 ```{r}
 
-p <- ggplot(servidores %>% filter(data == max(data)), aes( y = total_rendimentos, x = regime, color = formacao))+ geom_jitter()+coord_flip() +theme_minimal()
+```
+
+
+### remuneração por regime
+
+```{r}
+
+p <- ggplot(dados_servidores %>% filter(data == max(data)), aes( y = total_rendimentos, x = regime, color = formacao))+ geom_jitter()+coord_flip() +theme_minimal()
 
 ggplotly(p)
 
@@ -332,7 +283,7 @@ ggplotly(p)
 
 ```{r}
 
-p <- ggplot(servidores %>% filter(data == max(data)), aes( y = remuneracao_por_hora , x = regime, color = formacao))+ geom_jitter()+coord_flip() +theme_minimal()
+p <- ggplot(dados_servidores %>% filter(data == max(data)), aes( y = remuneracao_por_hora , x = regime, color = formacao))+ geom_jitter()+coord_flip() +theme_minimal()
 
 ggplotly(p)
 
@@ -343,7 +294,7 @@ ggplotly(p)
 
 ```{r}
 
-p <- ggplot(servidores %>% filter(data == max(data)), aes(total_rendimentos) )+ geom_histogram() +theme_minimal()
+p <- ggplot(dados_servidores %>% filter(data == max(data)), aes(total_rendimentos) )+ geom_histogram() +theme_minimal()
 
 ggplotly(p)
 
@@ -353,17 +304,17 @@ ggplotly(p)
 ### evolucao força de trabalho
 
 ```{r}
-
-saldo_trabalho <- servidores %>% filter(data %in% c(max(data), add_with_rollback(max(data), months(-1))))%>% group_by(regime,cargo,mes_ano) %>% count() %>% pivot_wider(names_from = "mes_ano", values_from = n) 
-
-saldo_trabalho[is.na(saldo_trabalho)] <- 0
-
-colnames(saldo_trabalho)[3] <- "anterior"
-colnames(saldo_trabalho)[4] <- "atual"
-
-saldo_trabalho <- saldo_trabalho %>% mutate(saldo = atual-anterior) 
-
-datatable(saldo_trabalho%>% filter(saldo != 0) %>% arrange(desc(saldo))  )
+# 
+# saldo_trabalho <- dados_servidores %>% filter(data %in% c(max(data), add_with_rollback(max(data), months(-1))))%>% group_by(regime,cargo_clean,mes_ano) %>% count() %>% pivot_wider(names_from = "mes_ano", values_from = n) 
+# 
+# saldo_trabalho[is.na(saldo_trabalho)] <- 0
+# 
+# colnames(saldo_trabalho)[3] <- "anterior"
+# colnames(saldo_trabalho)[4] <- "atual"
+# 
+# saldo_trabalho <- saldo_trabalho %>% mutate(saldo = atual-anterior) 
+# 
+# datatable(saldo_trabalho%>% filter(saldo != 0) %>% arrange(desc(saldo))  )
 
 
 
@@ -374,17 +325,17 @@ datatable(saldo_trabalho%>% filter(saldo != 0) %>% arrange(desc(saldo))  )
 ### Receitas em R\$ milhões
 
 ```{r tabela_receitas}
-datatable(receitas_clean %>% filter(ano>2013) %>% group_by(ano, origem_tipo) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
-  adorn_totals(where = c("row", "col")) %>%arrange(desc(Total)))%>% formatCurrency(c(as.character( c(2014:2022)),"Total"),
-  currency = "",
-  interval = 3,
-  mark = ".",
-  digits = 2,
-  dec.mark = ",",
-  before = TRUE,
-  zero.print = NULL,
-  rows = NULL)%>% 
-     formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
+# datatable(receitas_clean %>% filter(ano>2013) %>% group_by(ano, origem_tipo) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
+#   adorn_totals(where = c("row", "col")) %>%arrange(desc(Total)))%>% formatCurrency(c(as.character( c(2014:2022)),"Total"),
+#   currency = "",
+#   interval = 3,
+#   mark = ".",
+#   digits = 2,
+#   dec.mark = ",",
+#   before = TRUE,
+#   zero.print = NULL,
+#   rows = NULL)%>% 
+#      formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
 
 
 
@@ -394,9 +345,9 @@ datatable(receitas_clean %>% filter(ano>2013) %>% group_by(ano, origem_tipo) %>%
 
 ```{r}
 
-p <- ggplot(receitas_clean %>% filter(origem_nome!="dedução da receita de transferência"), aes(fill = origem_tipo, y = valor, x = ano))+ geom_bar(position="stack", stat="identity")
-
-ggplotly(p)
+# p <- ggplot(receitas_clean %>% filter(origem_nome!="dedução da receita de transferência"), aes(fill = origem_tipo, y = valor, x = ano))+ geom_bar(position="stack", stat="identity")
+# 
+# ggplotly(p)
 
 
 ```
@@ -408,7 +359,7 @@ ggplotly(p)
 ### Licitações publicadas nos últimos 60 dias
 
 ```{r tabela_licitacoes}
-datatable(licitacoes %>% filter(data_publicacao >= as.Date(today()-60) ) %>% group_by(objeto) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
+datatable(dados_licitacoes %>% filter(data_publicacao >= as.Date(today()-60) ) %>% group_by(objeto) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
   currency = "R$",
   interval = 3,
   mark = ".",
@@ -424,14 +375,14 @@ datatable(licitacoes %>% filter(data_publicacao >= as.Date(today()-60) ) %>% gro
 ### Atas de registro de preço
 
 ```{r tabela_atas}
-datatable(atas %>% select(objeto, fornecedor))%>% 
+datatable(dados_atas %>% select(objeto, fornecedor))%>% 
      formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
 ```
 
 ### Contratos vigentes
 
 ```{r}
-datatable(contratos %>% filter(vigencia_data_fim >= as.Date(today()) ) %>% group_by(objeto, fornecedor_nome) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
+datatable(dados_contratos %>% filter(vigencia_data_fim >= as.Date(today()) ) %>% group_by(objeto, fornecedor_nome) %>% summarise(valor = sum(valor, na.rm = TRUE)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
   currency = "R$",
   interval = 3,
   mark = ".",
@@ -444,7 +395,7 @@ datatable(contratos %>% filter(vigencia_data_fim >= as.Date(today()) ) %>% group
 ```
 
 ```{r eval=FALSE, include=FALSE}
-datatable(pagamentos %>% filter(grupo_cod == 33, ano == 2022, elemento_cod %in% c("309046","339047","339093")) %>% group_by(elemento_nome,elemento_cod, favorecido_nome, historico) %>% summarise(valor = sum(valor)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
+datatable(dados_pagamentos %>% filter(grupo_cod == 33, ano == 2022, elemento_cod %in% c("309046","339047","339093")) %>% group_by(elemento_nome,elemento_cod, favorecido_nome, historico) %>% summarise(valor = sum(valor)) %>% arrange(desc(valor)))%>% formatCurrency("valor",
   currency = "R$",
   interval = 3,
   mark = ".",
