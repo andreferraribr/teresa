@@ -208,14 +208,21 @@ servidores <- servidores %>% mutate(regime = case_when(
 write_csv(servidores %>%select(id, nome, regime, setor_clean, cargo_clean,formacao, competencia_ano, competencia_mes,data, mes_ano, jornada_horas, Jornada_minutos, total_rendimentos, horaextra,  remuneracao_por_hora, admissao_data, demissao_data) %>% unique(),"dados_servidores.csv")
 ```
 
+```{r orcamneto_despesa}
+
+setwd("./dados")
+orcamento_despesa <- read_csv("orcamento_despesa.csv")
+setwd("~/R/teresa")
+colnames (orcamento_despesa ) <- (str_replace(colnames (orcamento_despesa),paste0( "orcamento_despesa","."),""))
+
+```
+
 ```{r orcamento_receita}
-#| echo: false
-#| eval: false
-#| include: false
+
 setwd("./dados")
 orcamento_receita <- read_csv("orcamento_receita.csv")
 setwd("~/R/teresa")
-
+colnames (orcamento_receita ) <- (str_replace(colnames (orcamento_receita),paste0( "orcamento_receita","."),""))
 orcamento_receita <- orcamento_receita %>% separate(rubrica,into = c("rubrica_cod", "rubrica_nome")," - ")
 
 orcamento_receita <- orcamento_receita %>% separate(origem,into = c("origem_cod", "origem_nome")," - ")
@@ -243,11 +250,17 @@ orcamento_origem <- left_join(orcamento_origem, nomes_origem %>% select(origem_c
 ```
 
 ```{r receitas}
-#| echo: false
-#| eval: false
-#| include: false
+
 setwd("./dados")
 receitas <- read_csv("receitas.csv")
+
+
+
+setwd("~/R/teresa")
+
+colnames (receitas ) <- (str_replace(colnames (receitas),paste0( "receitas","."),""))
+
+
 
 receitas <- receitas %>% separate(rubrica,into = c("rubrica_cod", "rubrica_nome")," - ")
 
@@ -267,6 +280,7 @@ nomes_origem <- unique(nomes_origem %>% select(origem_cod, origem_nome))
 
 receita_origem <- left_join(receita_origem, nomes_origem %>% select(origem_cod, origem_nome)) %>% relocate(origem_nome, .before = origem_cod)
 
+write_csv(receitas %>% unique(),"dados_receitas.csv")
 
 ```
 

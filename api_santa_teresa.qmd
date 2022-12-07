@@ -29,7 +29,7 @@ setwd("./dados")
 file.list <-  list.files( pattern='*.csv')
 df.list <- lapply(file.list, read_csv) %>% 
   setNames(str_remove( file.list,".csv")) 
-setwd("./")
+setwd("~/R/teresa")
 
 colnames (df.list[["pagamentos"]] ) <- (str_replace(colnames (df.list[["pagamentos"]]),paste0( "pagamentos","."),""))
 colnames (df.list[["atas"]] ) <- (str_replace(colnames (df.list[["atas"]]),paste0( "atas","."),""))
@@ -168,11 +168,12 @@ colnames (all_bind[["documentos"]] ) <- (str_replace(colnames (all_bind[["docume
 # colnames (all_bind[["diarias_passagens"]] ) <- (str_replace(colnames (all_bind[["diarias_passagens"]]),paste0( "diarias_passagens","."),""))
 colnames (all_bind[["contratos"]] ) <- (str_replace(colnames (all_bind[["contratos"]]),paste0( "contratos","."),""))
 colnames (all_bind[["servidores"]] ) <- (str_replace(colnames (all_bind[["servidores"]]),paste0( "servidores","."),""))
+colnames (all_bind[["receitas"]] ) <- (str_replace(colnames (all_bind[["receitas"]]),paste0( "receitas","."),""))
 
 gravar_csv <- function(x,y){write_csv(x,y)}
 
 # for (i in all_bind){( gravar_csv(as.data.frame( all_bind [i])                 ,endpoint_relatorio$csv[i]))} 
-setwd("~/R/teresa")
+
 for (i in (1: NROW(endpoint_relatorio))) {gravar_csv(as.data.frame( all_bind[i]), endpoint_relatorio$salvar_csv[i])}
 
 # gravar_csv(all_bind$atas,"dados/atas.csv")
