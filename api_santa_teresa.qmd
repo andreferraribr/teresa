@@ -16,49 +16,118 @@ options(encoding = "latin1")
 knitr::opts_chunk$set( echo=FALSE, warning=FALSE, message=FALSE)
 ```
 
-```{r}
+```{r negate}
+# https://www.r-bloggers.com/the-notin-operator/
+'%!in%' <- Negate('%in%')
+```
 
-# 
+```{r importar_dados_e_delimitar_intervalo_temporal_das_consultas}
+
+# ler planilha com os endpoints da Prefeitura Municipal de Santa Teresa - ES
 endpoint <- read_excel("endpoint.xlsx")
 
+# criar atributos "csv" e "salvar_csv" para facilitar o tratamento dos dados e posterior criação dos arquivos csv
 endpoint <- endpoint %>% mutate(csv = paste0(item,".csv"))
 
 endpoint <- endpoint %>% mutate(salvar_csv = paste0("dados/",item,".csv"))
 
+
+# ler todos os arquivos "csv" da pasta "dados"
+# a pasta "dados" armazena a base inicial de dados históricos já baixados e salvos.
 setwd("./dados")
 file.list <-  list.files( pattern='*.csv')
 df.list <- lapply(file.list, read_csv) %>% 
   setNames(str_remove( file.list,".csv")) 
 setwd("~/R/teresa")
 
-colnames (df.list[["pagamentos"]] ) <- (str_replace(colnames (df.list[["pagamentos"]]),paste0( "pagamentos","."),""))
+
+```
+
+```{r}
+# DRY melhorar code (quando junto os históricos com os dados mais recentes, o nome # das colunas é alterado para o padrão "nome da DF","nome da coluna", por exemplo: # "pagamentos.data", ou "receitas.valor)
+
+# criei a regra abaixo para remover o nome da DF dos nomes das colunas. Assim,  "pagamentos.data" volta a ser "data"
+
+# preciso criar uma regra (via map ou lapply) para automatizar este passo do tratamento dos dados. Enquanto isso, repito o procedimento para cada um dos itens da DF "endpoint".
+
+# 1. atas
 colnames (df.list[["atas"]] ) <- (str_replace(colnames (df.list[["atas"]]),paste0( "atas","."),""))
-colnames (df.list[["licitacoes"]] ) <- (str_replace(colnames (df.list[["licitacoes"]]),paste0( "licitacoes","."),""))
-colnames (df.list[["documentos"]] ) <- (str_replace(colnames (df.list[["documentos"]]),paste0( "documentos","."),""))
-colnames (df.list[["diarias_passagens"]] ) <- (str_replace(colnames (df.list[["diarias_passagens"]]),paste0( "diarias_passagens","."),""))
+
+# 2. atos_controle
+
+
+# 3. contratos
 colnames (df.list[["contratos"]] ) <- (str_replace(colnames (df.list[["contratos"]]),paste0( "contratos","."),""))
+
+
+# 4. diaria_passagens
+colnames (df.list[["diarias_passagens"]] ) <- (str_replace(colnames (df.list[["diarias_passagens"]]),paste0( "diarias_passagens","."),""))
+
+
+# 5. documentos
+colnames (df.list[["documentos"]] ) <- (str_replace(colnames (df.list[["documentos"]]),paste0( "documentos","."),""))
+
+
+# 6. licitacoes
+colnames (df.list[["licitacoes"]] ) <- (str_replace(colnames (df.list[["licitacoes"]]),paste0( "licitacoes","."),""))
+
+
+# 7. orcamento_despesa
+colnames (df.list[["orcamento_despesa"]] ) <- (str_replace(colnames (df.list[["orcamento_despesa"]]),paste0( "orcamento_despesa","."),""))
+
+
+# 8. orcamento_receita
+colnames (df.list[["orcamento_receita"]] ) <- (str_replace(colnames (df.list[["orcamento_receita"]]),paste0( "orcamento_receita","."),""))
+
+
+# 9. pagamentos
+colnames (df.list[["pagamentos"]] ) <- (str_replace(colnames (df.list[["pagamentos"]]),paste0( "pagamentos","."),""))
+
+
+# 10. receitas
+colnames (df.list[["receitas"]] ) <- (str_replace(colnames (df.list[["receitas"]]),paste0( "receitas","."),""))
+
+# 11. servidores
 colnames (df.list[["servidores"]] ) <- (str_replace(colnames (df.list[["servidores"]]),paste0( "servidores","."),""))
 
 
-# teste último dia
+
+
+```
+
+```{r}
+
+# regra para definir intervalo temporal da consulta
 endpoint <- endpoint %>% mutate(data_para_url = case_when(
+  
+  # para atos_controle, contratos, documentos, licitacoes, orcamento_despesa e orcamento_receita 
   obrigatorio == "ano" ~ "?2022&page_size=1",
+  
+  item == "atas"~ paste0("?data_inicio=",strftime( max(as.Date(df.list$atas$data)+days(1)),"%d/%m/%Y"),"&data_fim=",strftime( today(),"%d/%m/%Y"),"&page_size=1"),
+
+    item == "diarias_passagens"~ paste0("?data_inicio=",strftime( max(as.Date(df.list$diarias_passagens$data)+days(1)),"%d/%m/%Y"),"&data_fim=",strftime( today(),"%d/%m/%Y"),"&page_size=1"),
+  
   item == "pagamentos"~ paste0("?data_inicio=",strftime( max(as.Date(df.list$pagamentos$data)+days(1)),"%d/%m/%Y"),"&data_fim=",strftime( today(),"%d/%m/%Y"),"&page_size=1"),
-  item == "diarias_passagens"~ paste0("?data_inicio=",strftime( max(as.Date(df.list$diarias_passagens$data)+days(1)),"%d/%m/%Y"),"&data_fim=",strftime( today(),"%d/%m/%Y"),"&page_size=1"),
-    obrigatorio == "data_inicial e data_final" & item != "pagamentos"& item != "diarias_passagens"~"?data_inicio=01/01/2022&data_fim=31/12/2022&page_size=1",
-  obrigatorio == "mês e ano competência"~ "?competencia_ano=2022&competencia_mes=11&page_size=1"
-  ))
+  
+  item == "receitas"~ paste0("?data_inicio=",strftime( max(as.Date(df.list$receitas$data)+days(1)),"%d/%m/%Y"),"&data_fim=",strftime( today(),"%d/%m/%Y"),"&page_size=1"),
+  
+  # para servidores
+  obrigatorio == "mês e ano competência"~ paste0("?competencia_ano=2022&competencia_mes=",as.integer(max(df.list$servidores$competencia_mes))+1,"&page_size=1")
+))
 
 
 
-
+# criar os links 
 endpoint <- endpoint %>% mutate(url_api_dados = paste0( endpoint,data_para_url))
 
+```
+
+```{r gerar_urls_da_api}
 
 
-## as 3 funcoes abaixo são utilizadas para criar a df_dados
+## as 3 funcoes abaixo são utilizadas para criar a df_dados com a informacao sobre 1) numero de páginas da API, 2) a data do request e 3) url do resquest
 
-# funcao para obter numero de paginas da API
+# 1) funcao para obter numero de paginas da API
 api_linhas <- function(x){
 api_linhas <- fromJSON(content(GET(url = x),
                           "text", encoding = "UTF-8"),
@@ -71,7 +140,7 @@ return(api_linhas)
 
 
 
-# funcao para obter a data do request
+# 2) funcao para obter a data do request
 api_atualizacao <- function(x){
 api_date <- GET(url = x)
 api_atualizacao <-  as.Date(api_date$date)
@@ -80,7 +149,7 @@ return(api_atualizacao)
 
 
 
-# funcao para obter a url do request e fazer o left_join com a DF endpoint
+# 3) funcao para obter a url do request e fazer o left_join com a DF endpoint
 api_url <- function(x){
 api_url <- GET(url = x)
 api_url <-  (api_url$url)
@@ -97,24 +166,28 @@ df_dados <- map_df(endpoint$url_api_dados, function(.x) {
 })
 
 
-
+# incluir na DF endpoint 1) numero de páginas da API, 2) a data do request e 3) url do resquest 
 endpoint <- left_join(endpoint,df_dados)
 
 endpoint <- endpoint %>% arrange(item)
 
+# alterar o número de páginas. O request inicial e feito apenas para 1 página. Assim o processo fica mais rápido. Contudo, para baixar os dados, transformo 1 página em 100.
 endpoint <- endpoint %>% mutate(paginas = if_else(linhas>0 ,as.integer(linhas/100)+1,0))
-# filtrar apenas as APIs de interesse
+
+
+# filtrar apenas as APIs que precisam ser atualizadas (data inicial < today() ou DF servidores com mês competência < mes atual ou todas com obrigatório == "ano")
 endpoint_relatorio <- endpoint %>% filter(item %in% c( names(df.list)), paginas>0)
 
 
 
 call_urls <- c()
 
-# criar todas as urls da API
+# criar todas as urls da API loop por todos os itens endpoint e loop por todas as página de cada item
 
 for(i in  1:NROW(endpoint_relatorio) ) {                                             
    for(j in 1:endpoint_relatorio$paginas[i]) {                                           
    url_loop <-(paste0(endpoint_relatorio$url_api_dados[i], "00&page=", j))  
+   
    call_urls <- c(call_urls,url_loop)
   }
 }
@@ -122,10 +195,11 @@ for(i in  1:NROW(endpoint_relatorio) ) {
 
 
 
-# endpoint_relatorio <- endpoint 
+```
 
-# funcao para gerar as DFs a partir das URLs
-df_call <- function(x){relatorios(str_subset(call_urls,x))} 
+```{r baixar_dados_da_api_delimitados_por_endpoint_relatorio_e_criar_lista_ALL}
+
+
 
 json2df = function(a){ 
   # "a" é a URL
@@ -140,7 +214,11 @@ bind_json2df = function(a){ map(a,json2df)}
 
 relatorios = function(a){map_dfr(bind_json2df(a), bind_rows)}
 
+# funcao para gerar as DFs a partir das URLs
+df_call <- function(x){relatorios(str_subset(call_urls,x))} 
 
+
+# automatizar o acesso as API, download dos dados e criacao da lista "all" com todas as DFs pre-selecionadas em endpoint_relatorio$item
 
 all <- map(endpoint_relatorio$item,df_call) %>% 
                                 setNames(endpoint_relatorio$item)
@@ -148,40 +226,32 @@ all <- map(endpoint_relatorio$item,df_call) %>%
 
 
 
+
+```
+
+```{r}
+
+# funcao para juntar a base histórica (df.list) e os dados recentes obtivos via api (all)
 df_bind <- function(x){
   rbind((df.list[[str_subset(names(df.list),paste0(x))]]),(all[[str_subset(names(all),x)]])) %>% unique()
 }
 
 
-for (i in names(all)){
-  names(df.list[[i]]) <- names(all[[i]])
-}
-
+# automatizar a juntar as bases de dado
 all_bind <- map(endpoint_relatorio$item,df_bind)
 
+# nomear corretamente as DFs da lista all_bind
 names(all_bind) <- endpoint_relatorio$item
 
-# colnames (all_bind[["pagamentos"]] ) <- (str_replace(colnames (all_bind[["pagamentos"]]),paste0( "pagamentos","."),""))
-colnames (all_bind[["atas"]] ) <- (str_replace(colnames (all_bind[["atas"]]),paste0( "atas","."),""))
-colnames (all_bind[["licitacoes"]] ) <- (str_replace(colnames (all_bind[["licitacoes"]]),paste0( "licitacoes","."),""))
-colnames (all_bind[["documentos"]] ) <- (str_replace(colnames (all_bind[["documentos"]]),paste0( "documentos","."),""))
-# colnames (all_bind[["diarias_passagens"]] ) <- (str_replace(colnames (all_bind[["diarias_passagens"]]),paste0( "diarias_passagens","."),""))
-colnames (all_bind[["contratos"]] ) <- (str_replace(colnames (all_bind[["contratos"]]),paste0( "contratos","."),""))
-colnames (all_bind[["servidores"]] ) <- (str_replace(colnames (all_bind[["servidores"]]),paste0( "servidores","."),""))
-colnames (all_bind[["receitas"]] ) <- (str_replace(colnames (all_bind[["receitas"]]),paste0( "receitas","."),""))
 
 gravar_csv <- function(x,y){write_csv(x,y)}
 
-# for (i in all_bind){( gravar_csv(as.data.frame( all_bind [i])                 ,endpoint_relatorio$csv[i]))} 
 
 for (i in (1: NROW(endpoint_relatorio))) {gravar_csv(as.data.frame( all_bind[i]), endpoint_relatorio$salvar_csv[i])}
 
-# gravar_csv(all_bind$atas,"dados/atas.csv")
-# gravar_csv(all_bind$pagamentos,"dados/pagamentos.csv")
-# gravar_csv(all_bind$contratos,"dados/contratos.csv")
-# gravar_csv(all_bind$licitacoes,"dados/licitacoes.csv")
-# gravar_csv(all_bind$servidores,"dados/servidores.csv")
-# gravar_csv()
-# gravar_csv()
+
+
+
+
 
 ```
