@@ -29,22 +29,6 @@ library(htmltools)
 library(reactablefmtr)
 ```
 
-```{r df_licitacoes}
-
-
-
-
-
-# licitacoes$valor <- str_remove_all(licitacoes$valor,"R")
-# licitacoes$valor <- str_remove_all(licitacoes$valor,"\\$")
-# licitacoes$valor <- str_replace(licitacoes$valor,"--", "0,00")
-# licitacoes$valor <- str_trim (licitacoes$valor)
-# licitacoes$valor <- parse_number(licitacoes$valor, locale = locale(decimal_mark = ","))
-# 
-# licitacoes <- licitacoes %>% mutate(ano = year(data_publicacao))
-
-```
-
 ## Licitações
 
 ```{r licitacoes}

@@ -1,7 +1,15 @@
 ---
-title: "api_santa_teresa"
+title: "Acessando a API"
 editor: visual
+execute:
+  echo: fenced
 ---
+
+```{r}
+options(encoding = "latin1")
+options(scipen=999)
+knitr::opts_chunk$set(  warning=FALSE, message=FALSE)
+```
 
 ```{r pacotes}
 # Loading packages
@@ -12,8 +20,7 @@ library(tidyverse)
 library(DT)
 library(lubridate)
 library(readxl)
-options(encoding = "latin1")
-knitr::opts_chunk$set( echo=FALSE, warning=FALSE, message=FALSE)
+
 ```
 
 ```{r negate}
@@ -43,7 +50,7 @@ setwd("~/R/teresa")
 
 ```
 
-```{r}
+```{r corrigir_nome_das_colunas}
 # DRY melhorar code (quando junto os históricos com os dados mais recentes, o nome # das colunas é alterado para o padrão "nome da DF","nome da coluna", por exemplo: # "pagamentos.data", ou "receitas.valor)
 
 # criei a regra abaixo para remover o nome da DF dos nomes das colunas. Assim,  "pagamentos.data" volta a ser "data"
@@ -54,7 +61,7 @@ setwd("~/R/teresa")
 colnames (df.list[["atas"]] ) <- (str_replace(colnames (df.list[["atas"]]),paste0( "atas","."),""))
 
 # 2. atos_controle
-
+colnames (df.list[["atos_controle"]] ) <- (str_replace(colnames (df.list[["atos_controle"]]),paste0( "atos_controle","."),""))
 
 # 3. contratos
 colnames (df.list[["contratos"]] ) <- (str_replace(colnames (df.list[["contratos"]]),paste0( "contratos","."),""))
@@ -95,7 +102,7 @@ colnames (df.list[["servidores"]] ) <- (str_replace(colnames (df.list[["servidor
 
 ```
 
-```{r}
+```{r endpoint}
 
 # regra para definir intervalo temporal da consulta
 endpoint <- endpoint %>% mutate(data_para_url = case_when(
@@ -111,9 +118,15 @@ endpoint <- endpoint %>% mutate(data_para_url = case_when(
   
   item == "receitas"~ paste0("?data_inicio=",strftime( max(as.Date(df.list$receitas$data)+days(1)),"%d/%m/%Y"),"&data_fim=",strftime( today(),"%d/%m/%Y"),"&page_size=1"),
   
+  ## para janeiro
   # para servidores
-  obrigatorio == "mês e ano competência"~ paste0("?competencia_ano=2022&competencia_mes=",as.integer(max(df.list$servidores$competencia_mes))+1,"&page_size=1")
-))
+#  obrigatorio == "mês e ano competência"~ paste0("?competencia_ano=2023&competencia_mes=1&page_size=1")
+#))
+
+  ## para os demais meses
+  # para servidores
+   obrigatorio == "mês e ano competência"~ paste0("?competencia_ano=2023&competencia_mes=",as.integer(max(df.list$servidores$competencia_mes))+1,"&page_size=1")
+ ))
 
 
 
@@ -195,9 +208,11 @@ for(i in  1:NROW(endpoint_relatorio) ) {
 
 
 
+
 ```
 
 ```{r baixar_dados_da_api_delimitados_por_endpoint_relatorio_e_criar_lista_ALL}
+
 
 
 
@@ -229,13 +244,17 @@ all <- map(endpoint_relatorio$item,df_call) %>%
 
 ```
 
-```{r}
+```{r atualizar_dfs_e_salvar_arquivos}
 
 # funcao para juntar a base histórica (df.list) e os dados recentes obtivos via api (all)
 df_bind <- function(x){
   rbind((df.list[[str_subset(names(df.list),paste0(x))]]),(all[[str_subset(names(all),x)]])) %>% unique()
 }
 
+# deixar as duas listas com os mesmo nomes
+# for (i in names(all)){
+#   names(df.list[[i]]) <- names(all[[i]])
+# }
 
 # automatizar a juntar as bases de dado
 all_bind <- map(endpoint_relatorio$item,df_bind)
@@ -244,11 +263,13 @@ all_bind <- map(endpoint_relatorio$item,df_bind)
 names(all_bind) <- endpoint_relatorio$item
 
 
+
+# gravar as DFs na pasta DADOS
 gravar_csv <- function(x,y){write_csv(x,y)}
 
 
-for (i in (1: NROW(endpoint_relatorio))) {gravar_csv(as.data.frame( all_bind[i]), endpoint_relatorio$salvar_csv[i])}
 
+for (i in (1: NROW(endpoint_relatorio))) {gravar_csv(as.data.frame( all_bind[i]), endpoint_relatorio$salvar_csv[i])}%>% unique()
 
 
 

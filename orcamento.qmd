@@ -2,3 +2,74 @@
 title: "Orçamento"
 editor: visual
 ---
+
+```{r}
+# https://kbroman.org/knitr_knutshell/pages/Rmarkdown.html
+knitr::opts_chunk$set( echo=FALSE, warning=FALSE, message=FALSE)
+options(encoding = "Latin1")
+```
+
+```{r}
+# Loading packages
+
+library(purrr)
+library(tidyverse)
+library(readxl)
+library(DT)
+library(plotly)
+library(lubridate)
+library(RcppRoll)
+library(scales)
+library(ggrepel)
+library(forcats)
+library(readr)
+library(xts)
+```
+
+```{r}
+# https://www.r-bloggers.com/the-notin-operator/
+'%!in%' <- Negate('%in%')
+
+```
+
+```{r}
+#| include: false
+dados_orcamento_despesa <- read_csv("dados_orcamento_despesa.csv")
+dados_orcamento_receita <- read_csv("dados_orcamento_receita.csv")
+dados_receitas <- read_csv("dados_receitas.csv")
+dados_pagamentos <- read_csv("dados_pagamentos.csv")
+
+
+```
+
+```{r}
+orcamento_origem <- dados_orcamento_receita %>% group_by(origem_cod, ano) %>% summarise(valor = sum(valor)) %>% pivot_wider(names_from = ano, values_from = valor)
+
+datatable(orcamento_origem)%>% formatCurrency(as.character( c(2007:2022)),
+  currency = "",
+  interval = 3,
+  mark = ".",
+  digits = 0,
+  dec.mark = ",",
+  before = TRUE,
+  zero.print = NULL,
+  rows = NULL)%>% 
+     formatStyle(columns = colnames(.$x$data), fontSize = "8pt")
+
+nomes_origem <- dados_orcamento_receita %>% filter(ano==2022)
+
+nomes_origem <- unique(nomes_origem %>% select(origem_cod, origem_nome))
+
+orcamento_origem <- left_join(orcamento_origem, nomes_origem %>% select(origem_cod, origem_nome)) %>% relocate(origem_nome, .before = origem_cod)
+
+datatable(orcamento_origem)%>% formatCurrency(as.character( c(2007:2022)),
+  currency = "",
+  interval = 3,
+  mark = ".",
+  digits = 0,
+  dec.mark = ",",
+  before = TRUE,
+  zero.print = NULL,
+  rows = NULL)%>% 
+     formatStyle(columns = colnames(.$x$data), fontSize = "8pt")
+```

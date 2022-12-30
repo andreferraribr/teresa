@@ -1,12 +1,14 @@
 # Introdução
 
-This is a book created from markdown and executable code.
+O propósito desta publicação é apresentar informações sobre o município de Santa Teresa-ES. Inicialmente
 
 <https://www2.santateresa.es.gov.br/transparencia/api/webservice>
 
 [https://sesp.es.gov.br/estatísticas-criminais-2](https://sesp.es.gov.br/estatísticas-criminais-2)
 
 <http://www.ijsn.es.gov.br/observatorio-da-seguranca-cidada/paineis-de-indicadores/ocorrencias-letais>
+
+[![Dados Abertos - API](imagens/api_webservice.png){fig-alt="Portal da Transparência - Santa Teresa-ES"}](https://www2.santateresa.es.gov.br/transparencia/api/webservice)
 
 ```{r}
 1 + 1

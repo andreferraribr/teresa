@@ -5,7 +5,6 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
-
 ---
 
 ```{r}
@@ -49,9 +48,8 @@ mes_vigente <- paste0(max(dados_servidores$competencia_mes),"-", max(dados_servi
 
 ```
 
-
 ```{r df_receitas}
-# receitas_clean <- read_csv("receitas_clean.csv")
+ dados_receitas <- read_csv("dados_receitas.csv")
 
 
 
@@ -173,7 +171,7 @@ grupos_ts <- xts(grupos %>% select(investimento_acumulado,demais_acumulado), gru
 dygraph(grupos_ts, main = "Despesas (acumulado 12 meses)") %>%
   dyOptions(stepPlot = TRUE)%>% 
   dyRangeSelector()%>%
-  dyAxis("y", label = "R$ MI", valueRange = c(0, 60)) %>%
+  dyAxis("y", label = "R$ MI") %>%
   dyOptions(colors = RColorBrewer::brewer.pal(3, "Set2"))
   
 ```
@@ -260,13 +258,11 @@ renderValueBox( valueBox(reais(total_rendimentos/total_horas), caption = paste0(
 
 ## Column {.tabset}
 
-
 ### remuneração por regime
 
 ```{r}
 
 ```
-
 
 ### remuneração por regime
 
@@ -325,17 +321,17 @@ ggplotly(p)
 ### Receitas em R\$ milhões
 
 ```{r tabela_receitas}
-# datatable(receitas_clean %>% filter(ano>2013) %>% group_by(ano, origem_tipo) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
-#   adorn_totals(where = c("row", "col")) %>%arrange(desc(Total)))%>% formatCurrency(c(as.character( c(2014:2022)),"Total"),
-#   currency = "",
-#   interval = 3,
-#   mark = ".",
-#   digits = 2,
-#   dec.mark = ",",
-#   before = TRUE,
-#   zero.print = NULL,
-#   rows = NULL)%>% 
-#      formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
+datatable(dados_receitas %>% filter(ano>2013) %>% group_by(ano, origem_nome) %>% summarise(valor = sum(valor)/1000000) %>% pivot_wider(names_from = ano, values_from = valor)%>%
+  adorn_totals(where = c("row", "col")) %>%arrange(desc(Total)))%>% formatCurrency(c(as.character( c(2014:2022)),"Total"),
+  currency = "",
+  interval = 3,
+  mark = ".",
+  digits = 2,
+  dec.mark = ",",
+  before = TRUE,
+  zero.print = NULL,
+  rows = NULL)%>%
+     formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
 
 
 
@@ -345,9 +341,9 @@ ggplotly(p)
 
 ```{r}
 
-# p <- ggplot(receitas_clean %>% filter(origem_nome!="dedução da receita de transferência"), aes(fill = origem_tipo, y = valor, x = ano))+ geom_bar(position="stack", stat="identity")
-# 
-# ggplotly(p)
+p <- ggplot(dados_receitas %>% filter(origem_nome!="dedução da receita de transferência"), aes(fill = origem_nome, y = valor, x = ano))+ geom_bar(position="stack", stat="identity")
+
+ggplotly(p)
 
 
 ```

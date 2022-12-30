@@ -1,4 +1,192 @@
 ---
 title: "Pessoal"
 editor: visual
+format:
+  html:
+    code-fold: true
 ---
+
+```{r}
+knitr::opts_chunk$set(  warning=FALSE, message=FALSE)
+options(encoding = "latin1")
+```
+
+```{r}
+# Loading packages
+#| warning: false
+#| echo: false
+library(purrr)
+library(flexdashboard)
+library(shiny)
+library(tidyverse)
+library(readxl)
+library(DT)
+library(plotly)
+library(lubridate)
+library(RcppRoll)
+library(scales)
+library(ggrepel)
+library(forcats)
+library(readr)
+library(janitor)
+library(crosstalk)
+library(highcharter)
+library(htmlwidgets)
+
+
+```
+
+```{r}
+#| warning: false
+#| echo: false
+dados_servidores <- read_csv("dados_servidores.csv", 
+    col_types = cols(admissao_data = col_date(format = "%d/%m/%Y"))) %>%
+  mutate(mes_ano = fct_reorder(mes_ano, data))
+# servidores <- servidores %>% select(!...1)
+
+
+mes_vigente <- paste0(max(dados_servidores$competencia_mes),"-", max(dados_servidores$competencia_ano))
+
+
+```
+
+```{r}
+f_trabalho <- nrow(dados_servidores %>% filter(data == max(data)))
+
+
+```
+
+```{r}
+#| label: fig-mpg
+#| fig-cap: "City and highway mileage for 38 popular models of cars."
+#| fig-subcap:
+#|   - "Setor com maior despesa (em R$)"
+#|   - "Setor com maior quantitativo"
+#|   - "Cargo com maior qunatitativo"
+#|   - "Nivel de formacao com maior quantitativo"
+#|   - "Escolaridade"
+#| layout-ncol: 4
+#| column: page
+#| fig-height: 1.2
+
+
+
+
+quantitativo <- NROW (dados_servidores %>% filter(competencia_mes == max(competencia_mes)))
+
+valor_folha <- dados_servidores %>% filter(competencia_mes == max(competencia_mes)) %>% summarise(valor = sum(total_rendimentos))
+
+
+cargo <- head(dados_servidores %>% filter(competencia_mes == max(competencia_mes)) %>% group_by(cargo_clean) %>%  count(cargo_clean) %>% arrange(-n),1)
+
+
+
+setor <- head(dados_servidores %>% filter(competencia_mes == max(competencia_mes)) %>% group_by(setor_clean) %>%  count(setor_clean) %>% arrange(-n),1)
+
+setor_valor_folha <- head(dados_servidores %>% filter(competencia_mes == max(competencia_mes)) %>% group_by(setor_clean) %>%  summarise( folha = sum(total_rendimentos)) %>% arrange(-folha),1)
+
+
+escolaridade <- head(dados_servidores %>% filter(competencia_mes == max(competencia_mes)) %>% group_by(formacao) %>%  count(formacao) %>% arrange(-n),1)
+
+
+
+gauge(setor_valor_folha$folha, min = 0,  max = valor_folha$valor,label = setor_valor_folha$setor_clean,gaugeSectors(
+  success = c(80, 100), warning = c(40, 79), danger = c(0, 39)
+))
+
+
+gauge(setor$n, min = 0, max = quantitativo,label = setor$setor_clean,gaugeSectors(
+  success = c(80, 100), warning = c(40, 79), danger = c(0, 39)
+))
+
+
+gauge(cargo$n, min = 0, max = quantitativo,  label = cargo$cargo_clean,gaugeSectors(
+  success = c(80, 100), warning = c(40, 79), danger = c(0, 39)
+))
+
+
+
+gauge(escolaridade$n, min = 0, max = quantitativo,  label = escolaridade$formacao,gaugeSectors(
+  success = c(80, 100), warning = c(40, 79), danger = c(0, 39)
+))
+
+
+
+```
+
+```{r}
+#| column: page
+
+ datatable( dados_servidores %>%  group_by(cargo_clean , mes_ano) %>% count(cargo_clean) %>% pivot_wider(names_from = mes_ano, values_from = n))
+ 
+ 
+datatable( dados_servidores %>%  group_by(regime, mes_ano) %>% count(regime) %>% pivot_wider(names_from = mes_ano, values_from = n)%>%
+  adorn_totals(where = c("row"))  )%>% 
+     formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
+```
+
+```{r}
+#| column: page
+reais = function(x){prettyNum(round(x,0), big.mark = ".", decimal.mark = ",")}
+
+# servidores <- rbind(servidores,servidores_2022_09) 
+
+# servidores <- servidores %>% mutate(competencia_mes =
+#       case_when(competencia_mes %in% c("10","11","12")~ competencia_mes,
+#       TRUE ~ paste0("0",competencia_mes)))
+
+
+
+
+datatable( dados_servidores %>%  group_by(regime, mes_ano) %>% count(regime) %>% pivot_wider(names_from = mes_ano, values_from = n)%>%
+  adorn_totals(where = c("row"))  )%>% 
+     formatStyle(columns = colnames(.$x$data), fontSize = "10pt")
+
+```
+
+```{r}
+
+tabela_reais = function (df,coluna = NULL) {
+      datatable((df)%>%
+  # "row" para o total aparecer na linha, ou seja, totalizar os valores de uma coluna
+  adorn_totals("row","col") ,
+      filter = 'top', 
+      rownames = FALSE,
+      extensions = 'Buttons',
+      options = list( 
+                  # order = list (df[(length(df))], 'desc'),
+                  dom = "Blfrtip",
+                  buttons = 
+                    list("copy", list(
+                      extend = "collection",
+                      buttons = c("csv", "excel", "pdf"),
+                      text = "Download" ) ),
+                  lengthMenu = list( c(-1, 5, 10,20),
+                                     c( "tudo",5, 10, 20)),
+                  pageLength = -1 )
+      )%>%
+  formatRound(
+  # formatar apenas as colunas numericas.
+  # sapply para identificar as colunas numericas e combinar com o parametro COLUNA
+    # ((ncol(df %>% select_if(is.character))+1):(ncol(df )+1)),
+    # http://datamining.togaware.com/survivor/Remove_Non_Numeric.html
+    (c(colnames(df[,sapply(df, is.numeric)]), coluna)),
+  digits = 2,
+  interval = 3,
+  mark = ".",
+  dec.mark = ","
+) 
+}
+
+
+```
+
+```{r}
+#| column: page
+hc <- dados_servidores %>% filter(competencia_mes == max(competencia_mes)) %>% group_by(setor_clean) %>% summarise(custo = sum (total_rendimentos), quantidade = n()) %>% 
+  hchart(
+    'scatter', hcaes(x = custo, y = quantidade, size = custo, group = setor_clean),
+    maxSize = "10%"
+    )
+hc
+```

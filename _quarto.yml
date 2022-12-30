@@ -8,8 +8,12 @@ book:
   chapters:
     - index.qmd
     - intro.qmd
+    - api_santa_teresa.qmd
+    - dados_santa_teresa.qmd
     - summary.qmd
+    - pessoal.qmd
     - compras.qmd
+    - orcamento.qmd
 
     
 
