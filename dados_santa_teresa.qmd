@@ -118,7 +118,7 @@ servidores <- servidores %>% mutate(cargo_clean = case_when(
   cargo == "PSICOLOGO(A) DT" ~  "Psicólogo",
   cargo == "SEC MUNICIPAL DE EDUCACAO" ~  "Secretário Municipal",
   cargo == "SECRETARIO(A) MUNICIPAL DE SAUDE" ~  "Secretário Municipal",
-  cargo == "TRABALHADOR BRACAL" ~  "Trabalhador Braçal",
+  startsWith(cargo,"TRABALHADOR B") ~  "Trabalhador Braçal",
   cargo == "VICE PREFEITO" ~  "Vice Prefeito",
   TRUE ~ str_to_title( word(cargo,1))))
 

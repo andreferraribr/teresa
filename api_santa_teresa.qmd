@@ -106,7 +106,7 @@ colnames (df.list[["servidores"]] ) <- (str_replace(colnames (df.list[["servidor
 
 # regra para definir intervalo temporal da consulta
 endpoint <- endpoint %>% mutate(data_para_url = case_when(
-  
+  # ajustar para 2023
   # para atos_controle, contratos, documentos, licitacoes, orcamento_despesa e orcamento_receita 
   obrigatorio == "ano" ~ "?2022&page_size=1",
   
@@ -120,13 +120,13 @@ endpoint <- endpoint %>% mutate(data_para_url = case_when(
   
   ## para janeiro
   # para servidores
-#  obrigatorio == "mês e ano competência"~ paste0("?competencia_ano=2023&competencia_mes=1&page_size=1")
-#))
+  obrigatorio == "mês e ano competência"~ paste0("?competencia_ano=2023&competencia_mes=1&page_size=1")
+))
 
   ## para os demais meses
   # para servidores
-   obrigatorio == "mês e ano competência"~ paste0("?competencia_ano=2023&competencia_mes=",as.integer(max(df.list$servidores$competencia_mes))+1,"&page_size=1")
- ))
+   # obrigatorio == "mês e ano competência"~ paste0("?competencia_ano=2023&competencia_mes=",as.integer(max(df.list$servidores$competencia_mes))+1,"&page_size=1")
+ #))
 
 
 

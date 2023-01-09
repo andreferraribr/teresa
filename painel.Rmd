@@ -300,17 +300,17 @@ ggplotly(p)
 ### evolucao força de trabalho
 
 ```{r}
-# 
-# saldo_trabalho <- dados_servidores %>% filter(data %in% c(max(data), add_with_rollback(max(data), months(-1))))%>% group_by(regime,cargo_clean,mes_ano) %>% count() %>% pivot_wider(names_from = "mes_ano", values_from = n) 
-# 
-# saldo_trabalho[is.na(saldo_trabalho)] <- 0
-# 
-# colnames(saldo_trabalho)[3] <- "anterior"
-# colnames(saldo_trabalho)[4] <- "atual"
-# 
-# saldo_trabalho <- saldo_trabalho %>% mutate(saldo = atual-anterior) 
-# 
-# datatable(saldo_trabalho%>% filter(saldo != 0) %>% arrange(desc(saldo))  )
+
+saldo_trabalho <- dados_servidores %>% filter(data %in% c(max(data), add_with_rollback(max(data), months(-1))))%>% group_by(cargo_clean,mes_ano) %>% count() %>% pivot_wider(names_from = "mes_ano", values_from = n)
+
+saldo_trabalho[is.na(saldo_trabalho)] <- 0
+
+colnames(saldo_trabalho)[2] <- "anterior"
+colnames(saldo_trabalho)[3] <- "atual"
+
+saldo_trabalho <- saldo_trabalho %>% mutate(saldo = atual-anterior)
+
+datatable(saldo_trabalho%>% filter(saldo != 0) %>% arrange(desc(saldo))  )
 
 
 
